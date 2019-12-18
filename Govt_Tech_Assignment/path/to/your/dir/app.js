@@ -1,41 +1,31 @@
 const fs = require('fs');
 const path = require('path');
 
-// // returns the list of one directory
-// fs.readdir(process.cwd(), function(err, files) {
-    
-//     files.forEach((file,index) => {
-//         // fs.readFile(file, 'utf8', function(err, contents) {
-//         //     if(contents === 'TODO')
-//         //     console.log(contents);
-//         // });
-//         console.log(file);
-//     });
-// })
 let filesArray = [];
-var walk = function(dir, done) {
-    fs.readdir(dir, function(err, list) {
-      if (err) return done(err);
-      var pending = list.length;
-      if (!pending) return done(null, filesArray);
-      list.forEach(function(file) {
-        file = path.resolve(dir, file);
-        fs.stat(file, function(err, stat) {
-          if (stat && stat.isDirectory()) {
-            walk(file, function(err, res) {
-              filesArray = filesArray.concat(res);
-              if (!--pending) done(null, filesArray);
+// fileSearch takes 2 args, directory path & a callback function 
+function fileSearch(dir, done) {
+    // fs.readdir takes 2 arg, directory path and a callback of the list of subdirectories and files in the directory
+    fs.readdir(dir, function(error, filesFolders) {
+      if (error) return done(error);
+      let numberFilesFolders = filesFolders.length; // gets the number of files or folders in the current diretory
+      if (numberFilesFolders == 0) return done(null, filesArray);
+      filesFolders.forEach(function(fileFolder) {
+        fileFolder = path.resolve(dir, fileFolder); //getting the path of the file or directory 
+        fs.stat(fileFolder, function(err, stat) {
+          if (stat && stat.isDirectory()) { // if it is a subdirectory, through recursion, repeat above steps to search for .js files
+            fileSearch(fileFolder, function(error, subFilesArray) {
+              if (!--numberFilesFolders) done(null, filesArray);
             });
           } else {
-            filesArray.push(file);
-            if (!--pending) done(null, filesArray);
+            filesArray.push(fileFolder);
+            if (!--numberFilesFolders) done(null, filesArray);
           }
         });
       });
     });
   };
 
-  walk(process.cwd(), function(err, results) {
-    if (err) throw err;
-    console.log(results);
+  fileSearch(process.cwd(), function(error, filesArray) {
+    if (error) throw error;
+    console.log(filesArray);
   });
